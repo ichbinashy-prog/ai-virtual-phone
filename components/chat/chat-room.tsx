@@ -626,6 +626,7 @@ const ChatTextInputBar = memo(forwardRef<ChatTextInputHandle, {
     onStartVideoCall: () => void;
     onStartVoiceCall: () => void;
     onSendText: (text: string, options?: { autoReply?: boolean }) => boolean;
+    onSendVoiceMessage?: (blob: Blob, duration: number, transcript?: string) => Promise<boolean | void> | boolean | void;
     onStopGeneration: () => void;
     onTriggerAIResponse: () => void;
 	onSendSticker: (name: string, url?: string) => void;
@@ -657,11 +658,19 @@ const ChatTextInputBar = memo(forwardRef<ChatTextInputHandle, {
     onStartVideoCall,
     onStartVoiceCall,
     onSendText,
+    onSendVoiceMessage,
     onStopGeneration,
     onTriggerAIResponse,
     onSendSticker,
 }, ref) {
     const [inputText, setInputText] = useState("");
+    const [isVoiceInputMode, setIsVoiceInputMode] = useState(false);
+    const [isHoldingVoice, setIsHoldingVoice] = useState(false);
+    const [isVoiceCancelZone, setIsVoiceCancelZone] = useState(false);
+    const [voiceRecordError, setVoiceRecordError] = useState("");
+    const voiceStartYRef = useRef(0);
+    const voiceStartTimeRef = useRef(0);
+    const voiceRecordingRef = useRef<import("@/lib/stt-cloud").ActiveCallRecording | null>(null);
     const textareaRef = useRef<HTMLTextAreaElement | null>(null);
     // 表情包搜索联想：ESC/失焦置 true 隐藏，输入变化重新开启
     const [suggestClosed, setSuggestClosed] = useState(false);
@@ -710,6 +719,74 @@ const ChatTextInputBar = memo(forwardRef<ChatTextInputHandle, {
         setInputText("");
         resetTextareaHeight();
         onClosePanels();
+    };
+
+    const handleVoicePointerDown = async (e: React.PointerEvent) => {
+        if (inputLocked || isGenerating) return;
+        e.preventDefault();
+        voiceStartYRef.current = e.clientY;
+        voiceStartTimeRef.current = Date.now();
+        setIsVoiceCancelZone(false);
+        setVoiceRecordError("");
+        try {
+            const { startCallRecording } = await import("@/lib/stt-cloud");
+            const recording = await startCallRecording();
+            voiceRecordingRef.current = recording;
+            setIsHoldingVoice(true);
+        } catch (err: any) {
+            setVoiceRecordError(err?.message || "无法访问麦克风");
+            setTimeout(() => setVoiceRecordError(""), 2500);
+        }
+    };
+
+    const handleVoicePointerMove = (e: React.PointerEvent) => {
+        if (!isHoldingVoice) return;
+        const deltaY = voiceStartYRef.current - e.clientY;
+        setIsVoiceCancelZone(deltaY > 50);
+    };
+
+    const handleVoicePointerUp = async (e: React.PointerEvent) => {
+        if (!isHoldingVoice) return;
+        e.preventDefault();
+        const durationMs = Date.now() - voiceStartTimeRef.current;
+        const recording = voiceRecordingRef.current;
+        voiceRecordingRef.current = null;
+        setIsHoldingVoice(false);
+
+        if (!recording) return;
+
+        if (isVoiceCancelZone) {
+            recording.cancel();
+            return;
+        }
+
+        if (durationMs < 500) {
+            recording.cancel();
+            setVoiceRecordError("说话时间太短");
+            setTimeout(() => setVoiceRecordError(""), 1500);
+            return;
+        }
+
+        try {
+            const blob = await recording.stop();
+            if (!blob) return;
+            const durationSec = Math.max(1, Math.round(durationMs / 1000));
+            // 转写
+            let transcript = "";
+            try {
+                const { resolveCloudSttConfig, transcribeAudioBlob } = await import("@/lib/stt-cloud");
+                const sttCfg = resolveCloudSttConfig(characterId);
+                if (sttCfg) {
+                    transcript = await transcribeAudioBlob(blob, sttCfg);
+                }
+            } catch { /* STT 失败不阻断语音发送 */ }
+
+            if (onSendVoiceMessage) {
+                await onSendVoiceMessage(blob, durationSec, transcript);
+            }
+        } catch (err: any) {
+            console.warn("发送语音失败:", err);
+        }
     };
 
     const panelOpen = showEmojiPanel || showStickerPanel || showPlusMenu;
@@ -779,43 +856,124 @@ const ChatTextInputBar = memo(forwardRef<ChatTextInputHandle, {
                     onClose={() => setSuggestClosed(true)}
                 />
             )}
-            <textarea
-                ref={textareaRef}
-                rows={1}
-                value={inputText}
-                onChange={e => {
-                    setInputText(e.target.value);
-                    setSuggestClosed(false);
-                    e.target.style.height = "auto";
-                    e.target.style.height = Math.min(e.target.scrollHeight, 120) + "px";
-                }}
-                onFocus={(e) => {
-                    if (panelOpen) {
-                        e.target.blur();
+            <div className="chat-input-row flex items-center gap-2 w-full">
+                <button
+                    type="button"
+                    onClick={() => {
+                        setIsVoiceInputMode(!isVoiceInputMode);
                         onClosePanels();
-                        const target = e.target as HTMLTextAreaElement;
-                        requestAnimationFrame(() => requestAnimationFrame(() => target.focus()));
-                    }
-                    setSuggestClosed(false);
-                }}
-                onBlur={() => setSuggestClosed(true)}
-                onKeyDown={e => {
-                    if (e.key === "Escape") {
-                        setSuggestClosed(true);
-                        return;
-                    }
-                    if (shouldSendChatInputOnEnter(e, enterToSendEnabled)) {
-                        e.preventDefault();
-                        handleSubmit();
-                    }
-                }}
-                enterKeyHint={enterToSendEnabled ? "send" : "enter"}
-                className="chat-input-textarea"
-                disabled={inputLocked}
-                placeholder={inputLocked
-                    ? (isSpectator ? "围观中，你不在这个群里" : `禁言中，剩余${Math.ceil(muteRemainingMs / 60000)}分钟`)
-                    : (theaterMode ? "写下番外指令..." : undefined)}
-            />
+                    }}
+                    disabled={inputLocked}
+                    className="ui-bare-btn text-[var(--c-text)] p-1 shrink-0"
+                    aria-label={isVoiceInputMode ? "切换键盘" : "切换语音"}
+                    title={isVoiceInputMode ? "切换到键盘输入" : "切换到按住说话"}
+                >
+                    {isVoiceInputMode ? (
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                            <rect x="2" y="4" width="20" height="16" rx="2" />
+                            <line x1="6" y1="8" x2="6" y2="8" />
+                            <line x1="10" y1="8" x2="10" y2="8" />
+                            <line x1="14" y1="8" x2="14" y2="8" />
+                            <line x1="18" y1="8" x2="18" y2="8" />
+                            <line x1="6" y1="12" x2="6" y2="12" />
+                            <line x1="18" y1="12" x2="18" y2="12" />
+                            <line x1="8" y1="16" x2="16" y2="16" />
+                        </svg>
+                    ) : (
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
+                            <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                            <line x1="12" y1="19" x2="12" y2="22" />
+                        </svg>
+                    )}
+                </button>
+
+                {isVoiceInputMode ? (
+                    <div
+                        className="chat-voice-hold-btn flex-1 select-none flex items-center justify-center font-medium ts-15 text-[var(--c-text)] rounded-[var(--ui-radius-card)] border border-[var(--c-input-border)] py-2 bg-[color-mix(in_srgb,var(--c-card)_60%,transparent)] active:bg-black/10 cursor-pointer"
+                        style={{ touchAction: "none", WebkitUserSelect: "none" }}
+                        onPointerDown={handleVoicePointerDown}
+                        onPointerMove={handleVoicePointerMove}
+                        onPointerUp={handleVoicePointerUp}
+                        onPointerCancel={handleVoicePointerUp}
+                        onContextMenu={e => e.preventDefault()}
+                    >
+                        {isHoldingVoice ? "松开 结束" : "按住 说话"}
+                    </div>
+                ) : (
+                    <textarea
+                        ref={textareaRef}
+                        rows={1}
+                        value={inputText}
+                        onChange={e => {
+                            setInputText(e.target.value);
+                            setSuggestClosed(false);
+                            e.target.style.height = "auto";
+                            e.target.style.height = Math.min(e.target.scrollHeight, 120) + "px";
+                        }}
+                        onFocus={(e) => {
+                            if (panelOpen) {
+                                e.target.blur();
+                                onClosePanels();
+                                const target = e.target as HTMLTextAreaElement;
+                                requestAnimationFrame(() => requestAnimationFrame(() => target.focus()));
+                            }
+                            setSuggestClosed(false);
+                        }}
+                        onBlur={() => setSuggestClosed(true)}
+                        onKeyDown={e => {
+                            if (e.key === "Escape") {
+                                setSuggestClosed(true);
+                                return;
+                            }
+                            if (shouldSendChatInputOnEnter(e, enterToSendEnabled)) {
+                                e.preventDefault();
+                                handleSubmit();
+                            }
+                        }}
+                        enterKeyHint={enterToSendEnabled ? "send" : "enter"}
+                        className="chat-input-textarea flex-1"
+                        disabled={inputLocked}
+                        placeholder={inputLocked
+                            ? (isSpectator ? "围观中，你不在这个群里" : `禁言中，剩余${Math.ceil(muteRemainingMs / 60000)}分钟`)
+                            : (theaterMode ? "写下番外指令..." : undefined)}
+                    />
+                )}
+            </div>
+
+            {/* 微信同款录音 HUD 浮层 */}
+            {isHoldingVoice && (
+                <div className="chat-voice-record-hud fixed inset-0 z-50 flex items-center justify-center pointer-events-none">
+                    <div className={`p-6 rounded-2xl flex flex-col items-center gap-3 backdrop-blur-md shadow-2xl transition-colors duration-200 ${
+                        isVoiceCancelZone ? "bg-red-500/90 text-white" : "bg-black/75 text-white"
+                    }`}>
+                        {isVoiceCancelZone ? (
+                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <circle cx="12" cy="12" r="10" />
+                                <line x1="15" y1="9" x2="9" y2="15" />
+                                <line x1="9" y1="9" x2="15" y2="15" />
+                            </svg>
+                        ) : (
+                            <div className="flex items-center gap-2">
+                                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="animate-pulse">
+                                    <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
+                                    <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                                    <line x1="12" y1="19" x2="12" y2="22" />
+                                </svg>
+                            </div>
+                        )}
+                        <span className="ts-14 font-medium tracking-wide">
+                            {isVoiceCancelZone ? "松开手指，取消发送" : "手指上滑，取消发送"}
+                        </span>
+                    </div>
+                </div>
+            )}
+
+            {voiceRecordError && (
+                <div className="chat-voice-record-error fixed bottom-24 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-full bg-black/80 text-white ts-13 shadow-lg pointer-events-none animate-fade-in">
+                    {voiceRecordError}
+                </div>
+            )}
 
             <div className="chat-input-actions">
                 <button
@@ -3507,6 +3665,38 @@ export function ChatRoom({ session, onBack, onDeleted }: ChatRoomProps) {
             role: "system",
             content: trimmed,
             mediaType: "system_instruction",
+        });
+        setMessages(prev => [...prev, newMsg]);
+        setPendingGenerate(true);
+        return true;
+    };
+
+    const handleSendVoiceMessage = async (blob: Blob, durationSec: number, transcript?: string): Promise<boolean> => {
+        if (!ensureGroupSpeakPermission()) return false;
+        if (isGenerating) {
+            showChatToast("请先等待对方回复");
+            return false;
+        }
+        cancelFollowUp(session.id);
+
+        const dataUrl = await new Promise<string>((resolve) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result as string);
+            reader.onerror = () => resolve("");
+            reader.readAsDataURL(blob);
+        });
+
+        const newMsg = pushChatMessage({
+            sessionId: session.id,
+            role: "user",
+            content: transcript?.trim() || "[语音消息]",
+            mediaType: "audio",
+            mediaUrl: dataUrl || undefined,
+            mediaData: {
+                label: transcript?.trim() || "语音消息",
+                voiceDuration: durationSec,
+                speechText: transcript?.trim() || "",
+            },
         });
         setMessages(prev => [...prev, newMsg]);
         setPendingGenerate(true);
@@ -6312,6 +6502,7 @@ export function ChatRoom({ session, onBack, onDeleted }: ChatRoomProps) {
                 onStartVideoCall={() => { cancelFollowUp(session.id); setShowPlusMenu(false); setCallInitiator("user"); setShowVideoCall(true); }}
                 onStartVoiceCall={() => { cancelFollowUp(session.id); setShowPlusMenu(false); setCallInitiator("user"); setShowVoiceCall(true); }}
                 onSendText={handleSendText}
+                onSendVoiceMessage={handleSendVoiceMessage}
                 onStopGeneration={clearStuckGeneration}
                 onTriggerAIResponse={triggerAIResponse}
                 onSendSticker={(name, url) => { setShowStickerPanel(false); sendRichMessage("sticker", { label: name, stickerUrl: url }); }}
