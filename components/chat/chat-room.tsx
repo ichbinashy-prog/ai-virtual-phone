@@ -5157,17 +5157,47 @@ export function ChatRoom({ session, onBack, onDeleted }: ChatRoomProps) {
         return "displaySourceId" in msg && msg.displaySourceId ? msg.displaySourceId : msg.id;
     };
 
+    const handleTapbackReaction = (messageId: string, emoji: string) => {
+        const userN = userIdentity?.name || "你";
+        const updated = toggleMessageReaction(messageId, emoji, "user", userN);
+        if (updated) {
+            setMessages(prev => prev.map(msg => msg.id === messageId ? updated : msg));
+        }
+        setActiveMessageId(null);
+    };
+
     /** Reusable context menu for user/assistant bubbles */
     const renderBubbleContextMenu = (m: ChatMessage, options?: { allowMultiSelect?: boolean }) => {
         const storedMessageId = getStoredActionMessageId(m);
+        const userReaction = m.reactions?.find(r => r.senderId === "user")?.emoji;
+        const tapbackIcons = ["❤️", "👍", "👎", "😂", "‼️", "❓"];
+
         const menu = (
             <div
                 onPointerDown={e => e.stopPropagation()}
                 ref={positionFloatingContextMenu}
                 style={getContextMenuInitialStyle()}
-                className="ctx-menu chat-floating-ctx-menu flex flex-col items-center gap-[6px] py-[4px] px-0"
+                className="chat-floating-ctx-menu flex flex-col items-center gap-[8px]"
                 data-role={m.role}>
-                <div className="flex">
+                {/* iMessage 顶置 Tapback 胶囊栏 */}
+                <div className="imessage-tapback-bar flex items-center">
+                    {tapbackIcons.map(emoji => (
+                        <button
+                            key={emoji}
+                            type="button"
+                            onClick={() => handleTapbackReaction(storedMessageId, emoji)}
+                            className={`w-[34px] h-[34px] rounded-full flex items-center justify-center ts-18 transition-all hover:scale-125 active:scale-95 ${
+                                userReaction === emoji ? "bg-[var(--c-icon-active)]/20 scale-110 shadow-sm" : ""
+                            }`}
+                            title={emoji}
+                        >
+                            {emoji}
+                        </button>
+                    ))}
+                </div>
+
+                {/* iMessage 原生高斯模糊圆角操作卡片 */}
+                <div className="imessage-actions-card flex flex-col">
                     <button onClick={() => {
                         const text = m.content;
                         const fallbackCopy = () => {
@@ -5186,21 +5216,42 @@ export function ChatRoom({ session, onBack, onDeleted }: ChatRoomProps) {
                             fallbackCopy();
                         }
                         setActiveMessageId(null);
-                    }} className="ctx-menu-btn">复制</button>
-                    <button onClick={() => (m.role === "assistant" ? handleEditResponseStart(m) : handleEditMessageStart(m))} className="ctx-menu-btn">
-                        {m.role === "assistant" && (m.rawResponseText || m.editableResponseText) ? "编辑回复" : "编辑"}
+                    }} className="imessage-action-item">
+                        <span>拷贝</span>
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
                     </button>
+
+                    <button onClick={() => { setQuotingMessage(m); setActiveMessageId(null); }} className="imessage-action-item">
+                        <span>回复 (引用)</span>
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg>
+                    </button>
+
+                    <button onClick={() => (m.role === "assistant" ? handleEditResponseStart(m) : handleEditMessageStart(m))} className="imessage-action-item">
+                        <span>{m.role === "assistant" && (m.rawResponseText || m.editableResponseText) ? "编辑回复" : "编辑"}</span>
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                    </button>
+
                     {m.mediaType === "audio" && m.mediaData?.label && (
-                        <button onClick={() => { setVoiceTextIds(prev => { const next = new Set(prev); if (next.has(m.id)) next.delete(m.id); else next.add(m.id); return next; }); setActiveMessageId(null); }} className="ctx-menu-btn">转文字</button>
+                        <button onClick={() => { setVoiceTextIds(prev => { const next = new Set(prev); if (next.has(m.id)) next.delete(m.id); else next.add(m.id); return next; }); setActiveMessageId(null); }} className="imessage-action-item">
+                            <span>转文字</span>
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                        </button>
                     )}
+
                     {m.role === "user" && (
-                        <button onClick={() => handleRetractMessage(storedMessageId)} className="ctx-menu-btn">撤回消息</button>
+                        <button onClick={() => handleRetractMessage(storedMessageId)} className="imessage-action-item">
+                            <span>撤回</span>
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                        </button>
                     )}
+
                     {m.role === "assistant" && (
-                        <button onClick={() => handleRetry(storedMessageId)} className="ctx-menu-btn ctx-menu-btn-danger">重试以下</button>
+                        <button onClick={() => handleRetry(storedMessageId)} className="imessage-action-item is-danger">
+                            <span>重新生成</span>
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+                        </button>
                     )}
-                </div>
-                <div className="flex">
+
                     <button onClick={() => {
                         const favItem = {
                             messageId: storedMessageId,
@@ -5222,13 +5273,22 @@ export function ChatRoom({ session, onBack, onDeleted }: ChatRoomProps) {
                             showChatToast("已添加收藏");
                         }
                         setActiveMessageId(null);
-                    }} className="ctx-menu-btn">{isChatMessageFavorited(storedMessageId) ? "取消收藏" : "收藏"}</button>
-                    <button onClick={() => { setQuotingMessage(m); setActiveMessageId(null); }} className="ctx-menu-btn">引用</button>
+                    }} className="imessage-action-item">
+                        <span>{isChatMessageFavorited(storedMessageId) ? "取消收藏" : "收藏"}</span>
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                    </button>
+
                     {options?.allowMultiSelect !== false && (
-                        <button onClick={() => startMultiSelectFromMessage(m)} className="ctx-menu-btn">多选</button>
+                        <button onClick={() => startMultiSelectFromMessage(m)} className="imessage-action-item">
+                            <span>更多 (多选)</span>
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+                        </button>
                     )}
-                    <button onClick={() => handleDeleteMessage(storedMessageId)} className="ctx-menu-btn ctx-menu-btn-danger">删除</button>
-                    <button onClick={() => handleDeleteMessagesFrom(storedMessageId)} className="ctx-menu-btn ctx-menu-btn-danger">删除以下</button>
+
+                    <button onClick={() => handleDeleteMessage(storedMessageId)} className="imessage-action-item is-danger">
+                        <span>删除</span>
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                    </button>
                 </div>
                 {(() => {
                     // 聊天插件注册的消息操作菜单项

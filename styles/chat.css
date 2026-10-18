@@ -7353,6 +7353,102 @@
   display: none !important;
 }
 
+/* ── iMessage 风格长按上下文菜单与 Tapback 胶囊 ── */
+.chat-room-wrapper .chat-floating-ctx-menu {
+  background: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+  padding: 0 !important;
+  gap: 10px !important;
+  align-items: center !important;
+  z-index: 50 !important;
+}
+
+/* 隐藏原本粗糙的微信小三角指示标 */
+.chat-room-wrapper .ctx-menu-triangle {
+  display: none !important;
+}
+
+/* 顶部 Tapback 悬浮条：iOS 专属高光白/深灰毛玻璃胶囊 */
+.imessage-tapback-bar {
+  background: rgba(255, 255, 255, 0.75) !important;
+  backdrop-filter: blur(28px) saturate(200%) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(200%) !important;
+  border: 0.5px solid rgba(255, 255, 255, 0.6) !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12), 0 1px 3px rgba(0, 0, 0, 0.06) !important;
+  border-radius: 999px !important;
+  padding: 5px 12px !important;
+  gap: 8px !important;
+}
+
+@media (prefers-color-scheme: dark) {
+  .imessage-tapback-bar {
+    background: rgba(45, 45, 50, 0.8) !important;
+    border: 0.5px solid rgba(255, 255, 255, 0.15) !important;
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.35) !important;
+  }
+}
+
+/* 下方操作菜单卡片：iOS 原生圆角毛玻璃竖列菜单 */
+.imessage-actions-card {
+  width: 220px;
+  background: rgba(255, 255, 255, 0.78) !important;
+  backdrop-filter: blur(32px) saturate(190%) !important;
+  -webkit-backdrop-filter: blur(32px) saturate(190%) !important;
+  border: 0.5px solid rgba(255, 255, 255, 0.65) !important;
+  border-radius: 14px !important;
+  overflow: hidden;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.14), 0 2px 6px rgba(0, 0, 0, 0.04) !important;
+}
+
+@media (prefers-color-scheme: dark) {
+  .imessage-actions-card {
+    background: rgba(40, 40, 45, 0.82) !important;
+    border: 0.5px solid rgba(255, 255, 255, 0.14) !important;
+    box-shadow: 0 16px 42px rgba(0, 0, 0, 0.45) !important;
+  }
+}
+
+.imessage-action-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10.5px 16px;
+  font-size: calc(14.5px * var(--app-text-scale, 1));
+  font-weight: 450;
+  color: var(--c-text-title, #1c1c1e);
+  background: transparent;
+  border: none;
+  border-bottom: 0.5px solid rgba(60, 60, 67, 0.12);
+  cursor: pointer;
+  transition: background 0.12s ease;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.imessage-action-item:last-child {
+  border-bottom: none;
+}
+
+.imessage-action-item:active {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+@media (prefers-color-scheme: dark) {
+  .imessage-action-item {
+    color: #ffffff;
+    border-bottom: 0.5px solid rgba(255, 255, 255, 0.1);
+  }
+  .imessage-action-item:active {
+    background: rgba(255, 255, 255, 0.12);
+  }
+}
+
+.imessage-action-item.is-danger {
+  color: #ff3b30 !important;
+}
+
 /* ── iMessage Tapback 徽章精致小球连接器（还原尾巴附着感） ── */
 .imessage-tapback-badge {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12), 0 0 0 0.5px rgba(255, 255, 255, 0.2) !important;
