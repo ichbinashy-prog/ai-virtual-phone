@@ -7352,3 +7352,32 @@
 .chat-room-wrapper .chat-input-actions {
   display: none !important;
 }
+
+/* ── iMessage Tapback 徽章精致小球连接器（还原尾巴附着感） ── */
+.imessage-tapback-badge {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12), 0 0 0 0.5px rgba(255, 255, 255, 0.2) !important;
+}
+
+.chat-bubble-role-user + .imessage-tapback-badge::after {
+  content: "";
+  position: absolute;
+  bottom: -4px;
+  right: 6px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: inherit;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+}
+
+.chat-bubble-role-assistant + .imessage-tapback-badge::after {
+  content: "";
+  position: absolute;
+  bottom: -4px;
+  left: 6px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: inherit;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+}
