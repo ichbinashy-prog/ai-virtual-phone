@@ -58,18 +58,14 @@ export type IconMeta = {
 export const PAGE_1_DEFAULT: IconId[] = ["chat", "diary", "music", "calendar", "checkphone", "shopping", "reading", "interview_magazine"];
 
 export const PAGE_2_DEFAULT: IconId[] = [
-  "cocreate",
   "game",
-  "appmarket",
   "xiaohongshu",
   "dwelling",
-  "story",
-  "vnmode",
-  "mapmode"
+  "story"
 ];
 
 // 第三页默认图标：右半边 2×2 排布（左半边留给日历组件），位置见 createDefaultDesktopIconLayout
-export const PAGE_3_DEFAULT: IconId[] = ["worldbuilder", "qa", "resource_hub", "realitybridge", "mixology"];
+export const PAGE_3_DEFAULT: IconId[] = ["qa", "realitybridge", "mixology"];
 
 export const DOCK_DEFAULT: IconId[] = ["settings", "theme", "resources", "characters"];
 
