@@ -856,7 +856,7 @@ const ChatTextInputBar = memo(forwardRef<ChatTextInputHandle, {
                     onClose={() => setSuggestClosed(true)}
                 />
             )}
-            <div className="imessage-input-capsule flex items-center gap-2 w-full px-2 py-1.5 rounded-[24px] bg-[rgba(255,255,255,0.18)] dark:bg-[rgba(40,40,45,0.65)] border border-white/20 dark:border-white/10 shadow-[0_2px_12px_rgba(0,0,0,0.06)] backdrop-blur-xl">
+            <div className="imessage-input-capsule flex items-center gap-2 w-full px-2 py-1.5 rounded-[24px] bg-[rgba(255,255,255,0.08)] dark:bg-[rgba(30,30,35,0.35)] border border-white/30 dark:border-white/15 shadow-[0_4px_20px_rgba(0,0,0,0.08)] backdrop-blur-2xl">
                 <button
                     type="button"
                     onClick={onTogglePlusMenu}

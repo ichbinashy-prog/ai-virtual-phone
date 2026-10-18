@@ -7274,23 +7274,25 @@
   pointer-events: none;
 }
 
-/* ── 角色/对方气泡（iMessage 毛玻璃与石墨灰） ── */
+/* ── 角色/对方气泡（透亮毛玻璃质感，大幅降低不透明度） ── */
 .chat-room-wrapper .chat-bubble-role-assistant {
-  background: rgba(240, 240, 242, 0.88) !important;
-  color: #000000 !important;
+  background: rgba(255, 255, 255, 0.38) !important;
+  color: var(--c-text-title, #1c1c1e) !important;
   border-radius: 18px !important;
   padding: 8px 14px !important;
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  border: 0.5px solid rgba(255, 255, 255, 0.3) !important;
+  backdrop-filter: blur(25px) saturate(190%) !important;
+  -webkit-backdrop-filter: blur(25px) saturate(190%) !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04), inset 0 0 0 0.5px rgba(255, 255, 255, 0.25) !important;
   position: relative;
 }
 
 @media (prefers-color-scheme: dark) {
   .chat-room-wrapper .chat-bubble-role-assistant {
-    background: rgba(45, 45, 48, 0.85) !important;
+    background: rgba(38, 38, 42, 0.45) !important;
     color: #ffffff !important;
-    border: 0.5px solid rgba(255, 255, 255, 0.08);
+    border: 0.5px solid rgba(255, 255, 255, 0.12) !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25), inset 0 0 0 0.5px rgba(255, 255, 255, 0.1) !important;
   }
 }
 
@@ -7330,17 +7332,19 @@
   }
 }
 
-/* ── 底部输入栏透明毛玻璃 ── */
+/* ── 底部输入栏完全通透毛玻璃（去除钝重感） ── */
 .chat-room-wrapper .chat-input-bar {
-  background: rgba(255, 255, 255, 0.35) !important;
-  backdrop-filter: blur(28px) saturate(180%) !important;
-  -webkit-backdrop-filter: blur(28px) saturate(180%) !important;
-  border-top: none !important;
+  background: rgba(255, 255, 255, 0.12) !important;
+  backdrop-filter: blur(32px) saturate(200%) !important;
+  -webkit-backdrop-filter: blur(32px) saturate(200%) !important;
+  border-top: 0.5px solid rgba(255, 255, 255, 0.15) !important;
+  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.03) !important;
 }
 
 @media (prefers-color-scheme: dark) {
   .chat-room-wrapper .chat-input-bar {
-    background: rgba(20, 20, 24, 0.55) !important;
+    background: rgba(15, 15, 18, 0.28) !important;
+    border-top: 0.5px solid rgba(255, 255, 255, 0.08) !important;
   }
 }
 
