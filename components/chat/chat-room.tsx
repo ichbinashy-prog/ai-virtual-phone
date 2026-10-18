@@ -6441,18 +6441,34 @@ export function ChatRoom({ session, onBack, onDeleted }: ChatRoomProps) {
                                     </>
                                 )}
                             </div>
-                            {/* Voice message: text transcription bubble */}
+                            {/* Voice message: text transcription bubble (iMessage 毛玻璃贴附气泡 + 一键收起) */}
                             {renderMsg.mediaType === "audio" && voiceTextIds.has(msg.id) && renderMsg.mediaData?.label && (
-                                <div className={`chat-msg-wrapper`} data-role={uiRole(msg)} style={{ marginTop: -12 }}>
-                                    {msg.role !== "user" && <div className="w-[40px] shrink-0" />}
-                                    <div className="voice-msg-text-bubble">
-                                        <BilingualTextBlock
-                                            text={msg.displayProjected ? (renderMsg.mediaData?.label || "") : renderDisplayText(renderMsg.mediaData?.label || "", msg.role === "user" ? 1 : 2, false)}
-                                            mode="markdown"
-                                            defaultExpanded={session.collapseBilingualTranslation !== false ? false : true}
-                                        />
+                                <div className="chat-msg-wrapper" data-role={uiRole(msg)} style={{ marginTop: -4 }}>
+                                    <div className={`chat-msg-content-wrap flex flex-col min-w-0 max-w-[76%] ${msg.role === "user" ? "items-end" : "items-start"}`}>
+                                        <div className="imessage-voice-transcript-bubble relative group select-none">
+                                            <BilingualTextBlock
+                                                text={msg.displayProjected ? (renderMsg.mediaData?.label || "") : renderDisplayText(renderMsg.mediaData?.label || "", msg.role === "user" ? 1 : 2, false)}
+                                                mode="markdown"
+                                                defaultExpanded={session.collapseBilingualTranslation !== false ? false : true}
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setVoiceTextIds(prev => {
+                                                        const next = new Set(prev);
+                                                        next.delete(msg.id);
+                                                        return next;
+                                                    });
+                                                }}
+                                                className="imessage-voice-transcript-close absolute -top-2 -right-2 w-[20px] h-[20px] rounded-full bg-black/40 text-white flex items-center justify-center ts-12 shadow-sm hover:scale-110 active:scale-90 transition-transform cursor-pointer"
+                                                title="收起文字"
+                                                aria-label="收起文字"
+                                            >
+                                                ✕
+                                            </button>
+                                        </div>
                                     </div>
-                                    {msg.role === "user" && <div className="w-[40px] shrink-0" />}
                                 </div>
                             )}
                             {/* 状态栏：一律裸渲染，不套便利贴外框（自定义模式下交给用户的渲染代码，

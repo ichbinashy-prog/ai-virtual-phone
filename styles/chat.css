@@ -7449,31 +7449,49 @@
   color: #ff3b30 !important;
 }
 
-/* ── iMessage Tapback 徽章精致小球连接器（还原尾巴附着感） ── */
-.imessage-tapback-badge {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12), 0 0 0 0.5px rgba(255, 255, 255, 0.2) !important;
+/* ── iMessage 转文字毛玻璃贴附气泡 ── */
+.imessage-voice-transcript-bubble {
+  background: rgba(255, 255, 255, 0.45) !important;
+  backdrop-filter: blur(28px) saturate(190%) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(190%) !important;
+  border: 0.5px solid rgba(255, 255, 255, 0.4) !important;
+  border-radius: 16px !important;
+  padding: 8px 14px !important;
+  color: var(--c-text-title, #1c1c1e) !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04), inset 0 0 0 0.5px rgba(255, 255, 255, 0.25) !important;
+  font-size: calc(14px * var(--app-text-scale, 1)) !important;
+  line-height: 1.45 !important;
+  word-break: break-word;
+  animation: transcriptFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.chat-bubble-role-user + .imessage-tapback-badge::after {
-  content: "";
-  position: absolute;
-  bottom: -4px;
-  right: 6px;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: inherit;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+@media (prefers-color-scheme: dark) {
+  .imessage-voice-transcript-bubble {
+    background: rgba(42, 42, 48, 0.55) !important;
+    border: 0.5px solid rgba(255, 255, 255, 0.12) !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3), inset 0 0 0 0.5px rgba(255, 255, 255, 0.08) !important;
+  }
 }
 
-.chat-bubble-role-assistant + .imessage-tapback-badge::after {
-  content: "";
-  position: absolute;
-  bottom: -4px;
-  left: 6px;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: inherit;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+.chat-msg-wrapper[data-role="user"] .imessage-voice-transcript-bubble {
+  border-top-right-radius: 4px !important;
+}
+
+.chat-msg-wrapper[data-role="assistant"] .imessage-voice-transcript-bubble {
+  border-top-left-radius: 4px !important;
+}
+
+.imessage-voice-transcript-close {
+  opacity: 0.7;
+  transition: opacity 0.15s ease;
+}
+
+.imessage-voice-transcript-bubble:hover .imessage-voice-transcript-close {
+  opacity: 1;
+}
+
+@keyframes transcriptFadeIn {
+  from { opacity: 0; transform: translateY(-4px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }
