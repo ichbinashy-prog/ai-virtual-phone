@@ -1177,8 +1177,12 @@ export function formatRichMediaForHistory(msg: ChatMessage, userName: string, ch
                 return formatImageGenerationDirective(msg);
             }
             return msg.content;
-        case "audio":
-            return `[语音条:${d?.label ?? "语音消息"}]`;
+        case "audio": {
+            const voiceText = d?.speechText || d?.label || msg.content;
+            return voiceText && voiceText !== "语音消息" && voiceText !== "[语音消息]"
+                ? `[语音条: ${voiceText}]`
+                : (d?.label ? `[语音条:${d.label}]` : "[语音条]");
+        }
         case "location":
             return `[位置:${d?.label ?? "位置"}]`;
         case "group_admin_notice":
