@@ -7226,3 +7226,125 @@
   background: currentColor;
   animation: chat-stream-cursor-blink 1s steps(2, start) infinite;
 }
+
+/* ══════════════════════════════════════════
+   iMessage / iOS Classic & Glass Style
+   ══════════════════════════════════════════ */
+
+/* ── 隐藏气泡旁边的头像（iMessage 私聊不展示气泡旁头像，头像置于顶栏居中） ── */
+.chat-room-wrapper .chat-msg-avatar {
+  display: none !important;
+}
+
+/* ── 气泡容器与布局收拢 ── */
+.chat-room-wrapper .chat-msg-wrapper {
+  margin-bottom: 2px;
+  gap: 0 !important;
+}
+
+.chat-room-wrapper .chat-msg-wrapper[data-consecutive] {
+  margin-top: -6px;
+}
+
+.chat-room-wrapper .chat-msg-content-wrap {
+  max-width: 76% !important;
+}
+
+/* ── 用户气泡（iMessage 经典 iOS 蓝） ── */
+.chat-room-wrapper .chat-bubble-role-user {
+  background: linear-gradient(180deg, #1f8eff 0%, #007aff 100%) !important;
+  color: #ffffff !important;
+  border-radius: 18px !important;
+  padding: 8px 14px !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+  position: relative;
+}
+
+/* ── 用户气泡右下角尾巴 ── */
+.chat-room-wrapper .chat-msg-wrapper[data-role="user"]:not([data-consecutive]) .chat-bubble-role-user::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  right: -6px;
+  width: 14px;
+  height: 16px;
+  background: #007aff;
+  border-bottom-left-radius: 12px 14px;
+  clip-path: polygon(0 0, 0% 100%, 100% 100%);
+  pointer-events: none;
+}
+
+/* ── 角色/对方气泡（iMessage 毛玻璃与石墨灰） ── */
+.chat-room-wrapper .chat-bubble-role-assistant {
+  background: rgba(240, 240, 242, 0.88) !important;
+  color: #000000 !important;
+  border-radius: 18px !important;
+  padding: 8px 14px !important;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  position: relative;
+}
+
+@media (prefers-color-scheme: dark) {
+  .chat-room-wrapper .chat-bubble-role-assistant {
+    background: rgba(45, 45, 48, 0.85) !important;
+    color: #ffffff !important;
+    border: 0.5px solid rgba(255, 255, 255, 0.08);
+  }
+}
+
+/* ── 角色气泡左下角尾巴 ── */
+.chat-room-wrapper .chat-msg-wrapper[data-role="assistant"]:not([data-consecutive]) .chat-bubble-role-assistant::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: -6px;
+  width: 14px;
+  height: 16px;
+  background: inherit;
+  border-bottom-right-radius: 12px 14px;
+  clip-path: polygon(100% 0, 0 100%, 100% 100%);
+  pointer-events: none;
+}
+
+/* ── 气泡文字尺寸与行高优雅适配 ── */
+.chat-room-wrapper .chat-markdown {
+  font-size: calc(15px * var(--app-text-scale, 1)) !important;
+  line-height: 1.42 !important;
+  letter-spacing: -0.01em;
+}
+
+/* ── 顶栏透明毛玻璃 ── */
+.chat-room-wrapper .page-header {
+  background: rgba(255, 255, 255, 0.45) !important;
+  backdrop-filter: blur(28px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(180%) !important;
+  border-bottom: 0.5px solid rgba(0, 0, 0, 0.08) !important;
+}
+
+@media (prefers-color-scheme: dark) {
+  .chat-room-wrapper .page-header {
+    background: rgba(25, 25, 28, 0.6) !important;
+    border-bottom: 0.5px solid rgba(255, 255, 255, 0.1) !important;
+  }
+}
+
+/* ── 底部输入栏透明毛玻璃 ── */
+.chat-room-wrapper .chat-input-bar {
+  background: rgba(255, 255, 255, 0.35) !important;
+  backdrop-filter: blur(28px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(180%) !important;
+  border-top: none !important;
+}
+
+@media (prefers-color-scheme: dark) {
+  .chat-room-wrapper .chat-input-bar {
+    background: rgba(20, 20, 24, 0.55) !important;
+  }
+}
+
+/* ── 隐藏输入栏下方原本的辅助按钮行，让输入胶囊直接居中贴底 ── */
+.chat-room-wrapper .chat-input-actions {
+  display: none !important;
+}

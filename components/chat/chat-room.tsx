@@ -856,41 +856,23 @@ const ChatTextInputBar = memo(forwardRef<ChatTextInputHandle, {
                     onClose={() => setSuggestClosed(true)}
                 />
             )}
-            <div className="chat-input-row flex items-center gap-2 w-full">
+            <div className="imessage-input-capsule flex items-center gap-2 w-full px-2 py-1.5 rounded-[24px] bg-[rgba(255,255,255,0.18)] dark:bg-[rgba(40,40,45,0.65)] border border-white/20 dark:border-white/10 shadow-[0_2px_12px_rgba(0,0,0,0.06)] backdrop-blur-xl">
                 <button
                     type="button"
-                    onClick={() => {
-                        setIsVoiceInputMode(!isVoiceInputMode);
-                        onClosePanels();
-                    }}
+                    onClick={onTogglePlusMenu}
                     disabled={inputLocked}
-                    className="ui-bare-btn text-[var(--c-text)] p-1 shrink-0"
-                    aria-label={isVoiceInputMode ? "切换键盘" : "切换语音"}
-                    title={isVoiceInputMode ? "切换到键盘输入" : "切换到按住说话"}
+                    className="imessage-plus-btn w-[30px] h-[30px] rounded-full flex items-center justify-center bg-[rgba(140,140,145,0.32)] text-white hover:bg-[rgba(140,140,145,0.45)] transition-colors shrink-0"
+                    aria-label="功能菜单"
                 >
-                    {isVoiceInputMode ? (
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                            <rect x="2" y="4" width="20" height="16" rx="2" />
-                            <line x1="6" y1="8" x2="6" y2="8" />
-                            <line x1="10" y1="8" x2="10" y2="8" />
-                            <line x1="14" y1="8" x2="14" y2="8" />
-                            <line x1="18" y1="8" x2="18" y2="8" />
-                            <line x1="6" y1="12" x2="6" y2="12" />
-                            <line x1="18" y1="12" x2="18" y2="12" />
-                            <line x1="8" y1="16" x2="16" y2="16" />
-                        </svg>
-                    ) : (
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
-                            <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-                            <line x1="12" y1="19" x2="12" y2="22" />
-                        </svg>
-                    )}
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                        <line x1="12" y1="5" x2="12" y2="19" />
+                        <line x1="5" y1="12" x2="19" y2="12" />
+                    </svg>
                 </button>
 
                 {isVoiceInputMode ? (
                     <div
-                        className="chat-voice-hold-btn flex-1 select-none flex items-center justify-center font-medium ts-15 text-[var(--c-text)] rounded-[var(--ui-radius-card)] border border-[var(--c-input-border)] py-2 bg-[color-mix(in_srgb,var(--c-card)_60%,transparent)] active:bg-black/10 cursor-pointer"
+                        className="chat-voice-hold-btn flex-1 select-none flex items-center justify-center font-medium ts-15 text-[var(--c-text)] py-1.5 rounded-full bg-black/10 dark:bg-white/10 active:bg-black/20 cursor-pointer transition-colors"
                         style={{ touchAction: "none", WebkitUserSelect: "none" }}
                         onPointerDown={handleVoicePointerDown}
                         onPointerMove={handleVoicePointerMove}
@@ -932,12 +914,56 @@ const ChatTextInputBar = memo(forwardRef<ChatTextInputHandle, {
                             }
                         }}
                         enterKeyHint={enterToSendEnabled ? "send" : "enter"}
-                        className="chat-input-textarea flex-1"
+                        className="imessage-input-textarea flex-1 bg-transparent border-none outline-none ts-15 text-[var(--c-text)] placeholder:text-[var(--c-icon)]/70 resize-none py-1 px-1.5 leading-snug"
                         disabled={inputLocked}
                         placeholder={inputLocked
                             ? (isSpectator ? "围观中，你不在这个群里" : `禁言中，剩余${Math.ceil(muteRemainingMs / 60000)}分钟`)
-                            : (theaterMode ? "写下番外指令..." : undefined)}
+                            : (theaterMode ? "写下番外指令..." : "iMessage 信息")}
                     />
+                )}
+
+                <button
+                    type="button"
+                    onClick={() => {
+                        setIsVoiceInputMode(!isVoiceInputMode);
+                        onClosePanels();
+                    }}
+                    disabled={inputLocked}
+                    className="imessage-voice-toggle-btn w-[30px] h-[30px] rounded-full flex items-center justify-center text-[var(--c-icon)] hover:text-[var(--c-text)] transition-colors shrink-0"
+                    aria-label={isVoiceInputMode ? "键盘输入" : "录音输入"}
+                >
+                    {isVoiceInputMode ? (
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                            <rect x="2" y="4" width="20" height="16" rx="2" />
+                            <line x1="6" y1="8" x2="6" y2="8" /><line x1="10" y1="8" x2="10" y2="8" /><line x1="14" y1="8" x2="14" y2="8" /><line x1="18" y1="8" x2="18" y2="8" />
+                            <line x1="6" y1="12" x2="6" y2="12" /><line x1="18" y1="12" x2="18" y2="12" />
+                            <line x1="8" y1="16" x2="16" y2="16" />
+                        </svg>
+                    ) : (
+                        /* iMessage 经典的声波音频图标 */
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                            <rect x="3" y="10" width="2" height="4" rx="1" />
+                            <rect x="7" y="6" width="2" height="12" rx="1" />
+                            <rect x="11" y="4" width="2" height="16" rx="1" />
+                            <rect x="15" y="7" width="2" height="10" rx="1" />
+                            <rect x="19" y="10" width="2" height="4" rx="1" />
+                        </svg>
+                    )}
+                </button>
+
+                {/* 存在输入内容时，显示向上的 iOS 亮蓝圆形发送箭头 */}
+                {inputText.trim() && (
+                    <button
+                        type="button"
+                        onClick={handleSubmit}
+                        className="imessage-send-arrow-btn w-[30px] h-[30px] rounded-full bg-[var(--c-action-blue,#007aff)] text-white flex items-center justify-center shadow-md animate-scale-in shrink-0"
+                        aria-label="发送"
+                    >
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
+                            <line x1="12" y1="19" x2="12" y2="5" />
+                            <polyline points="5 12 12 5 19 12" />
+                        </svg>
+                    </button>
                 )}
             </div>
 
@@ -5671,23 +5697,38 @@ export function ChatRoom({ session, onBack, onDeleted }: ChatRoomProps) {
             <header className="page-header chat-room-main-pane" data-ui="header">
                 <div className="page-header-safe-area" />
                 <div className="page-header-content">
-                    <button className="page-back-btn" type="button" onClick={onBack} aria-label="返回">
-                        <ChevronLeft size={24} strokeWidth={1.5} />
+                    <button className="page-back-btn flex items-center gap-0.5" type="button" onClick={onBack} aria-label="返回">
+                        <ChevronLeft size={26} strokeWidth={1.6} />
+                        <span className="imessage-back-badge ts-13 font-semibold px-1.5 py-0.5 rounded-full bg-[var(--c-icon-active)] text-white leading-none">
+                            {messages.length > 99 ? "99+" : Math.max(1, Math.min(messages.length, 17))}
+                        </span>
                     </button>
-                    <span className="page-title" style={{ position: 'relative' }}>
-                        {offlineMode ? "线下 · " : ""}
-                        {session.isGroup
-                            ? `${session.groupName || "群聊"}(${(session.participantIds?.length || 0) + (session.isSpectator ? 0 : 1)})`
-                            : (session.alias || character?.name || `User_${session.contactId.slice(-4)}`)}
+                    <div className="imessage-header-center flex flex-col items-center justify-center cursor-pointer" onClick={() => setShowSettings(true)}>
+                        <div className="w-[38px] h-[38px] rounded-full overflow-hidden border border-white/20 shadow-sm shrink-0 bg-[var(--c-input)]">
+                            {character?.avatar ? <img src={character.avatar} className="w-full h-full object-cover" alt="" /> : <ChatFallbackAvatar />}
+                        </div>
+                        <div className="imessage-header-name-pill flex items-center gap-1 mt-0.5 px-2 py-0.5 rounded-full bg-black/15 text-white/95 ts-11 font-medium backdrop-blur-md">
+                            <span className="truncate max-w-[120px]">{session.alias || character?.name || "对方"}</span>
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6" /></svg>
+                        </div>
                         {(isGenerating || isOfflineGenerating) && (
-                            <span className="chat-typing-indicator">
+                            <span className="chat-typing-indicator !bottom-[-16px]">
                                 {offlineMode ? "线下生成中" : "对方正在输入"}<span className="chat-typing-dots"><i/><i/><i/></span>
                             </span>
                         )}
-                    </span>
-                    <span className="page-header-right">
-                        <button className="page-back-btn" type="button" onClick={() => setShowSettings(true)} aria-label="更多">
-                            <MoreHorizontal size={22} strokeWidth={1.5} />
+                    </div>
+                    <span className="page-header-right flex items-center gap-1">
+                        <button
+                            className="page-back-btn text-[var(--c-icon-active)]"
+                            type="button"
+                            onClick={() => { setShowPlusMenu(false); setCallInitiator("user"); setShowVideoCall(true); }}
+                            aria-label="FaceTime 视频通话"
+                            title="视频通话"
+                        >
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14v-4z" />
+                                <rect x="3" y="6" width="12" height="12" rx="3" />
+                            </svg>
                         </button>
                     </span>
                 </div>
