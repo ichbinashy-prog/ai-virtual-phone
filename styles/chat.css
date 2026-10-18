@@ -7495,3 +7495,34 @@
   from { opacity: 0; transform: translateY(-4px) scale(0.98); }
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
+
+/* ── 双语译文排版优化（黑色、字号比原文稍小、去除斜体发灰感） ── */
+.chat-bilingual-section-translation {
+  color: var(--c-text-title, #1c1c1e) !important;
+  font-size: calc(13px * var(--app-text-scale, 1)) !important;
+  line-height: 1.45 !important;
+  font-style: normal !important;
+  opacity: 0.88 !important;
+}
+
+@media (prefers-color-scheme: dark) {
+  .chat-bilingual-section-translation {
+    color: #ffffff !important;
+    opacity: 0.85 !important;
+  }
+}
+
+/* 角色气泡和转文字气泡内的译文统一样式 */
+.chat-bubble-role-assistant .chat-bilingual-section-translation,
+.imessage-voice-transcript-bubble .chat-bilingual-section-translation {
+  color: inherit !important;
+  font-style: normal !important;
+}
+
+/* 双语展开/收起按钮微调 */
+.chat-bilingual-toggle {
+  font-size: calc(10.5px * var(--app-text-scale, 1)) !important;
+  color: var(--c-icon, #8e8e93) !important;
+  opacity: 0.65;
+  margin-top: 4px;
+}
