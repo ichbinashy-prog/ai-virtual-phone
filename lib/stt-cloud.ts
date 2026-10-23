@@ -21,9 +21,10 @@ const TRANSCRIBE_TIMEOUT_MS = 60_000;
 const MAX_RECORDING_MS = 60_000;
 
 function toCloudSttConfig(config: VoiceApiConfig | undefined | null): CloudSttConfig | null {
-    if (!config || config.provider !== "OpenAI") return null;
+    if (!config) return null;
+    if (config.provider !== "OpenAI") return null;
     if (!config.apiKey?.trim()) return null;
-    if (config.enableSTT === false) return null;
+    // 允许任何只要填了 API Key 的 OpenAI 语音配置用于 STT，不被 enableSTT === false 误杀
     return {
         baseUrl: (config.baseUrl || "https://api.openai.com/v1").trim().replace(/\/+$/, ""),
         apiKey: config.apiKey.trim(),

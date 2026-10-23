@@ -778,8 +778,14 @@ const ChatTextInputBar = memo(forwardRef<ChatTextInputHandle, {
                 const sttCfg = resolveCloudSttConfig(characterId);
                 if (sttCfg) {
                     transcript = await transcribeAudioBlob(blob, sttCfg);
+                } else {
+                    console.warn("[STT] 未找到可用的 STT 配置（须为 OpenAI/Groq 且填有 API Key）");
                 }
-            } catch { /* STT 失败不阻断语音发送 */ }
+            } catch (sttErr: any) {
+                console.warn("[STT] 语音转写异常:", sttErr);
+                setVoiceRecordError(sttErr?.message || "语音转写失败");
+                setTimeout(() => setVoiceRecordError(""), 2000);
+            }
 
             if (onSendVoiceMessage) {
                 await onSendVoiceMessage(blob, durationSec, transcript);
