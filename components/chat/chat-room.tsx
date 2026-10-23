@@ -3740,16 +3740,19 @@ export function ChatRoom({ session, onBack, onDeleted }: ChatRoomProps) {
             reader.readAsDataURL(blob);
         });
 
+        const text = transcript?.trim() || "";
+        const finalContent = text || "（给你发了一条语音消息）";
+
         const newMsg = pushChatMessage({
             sessionId: session.id,
             role: "user",
-            content: transcript?.trim() || "[语音消息]",
+            content: finalContent,
             mediaType: "audio",
             mediaUrl: dataUrl || undefined,
             mediaData: {
-                label: transcript?.trim() || "语音消息",
+                label: text || "语音消息",
                 voiceDuration: durationSec,
-                speechText: transcript?.trim() || "",
+                speechText: text,
             },
         });
         setMessages(prev => [...prev, newMsg]);
