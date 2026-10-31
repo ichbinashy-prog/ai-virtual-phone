@@ -1004,10 +1004,10 @@ export function assemblePromptPayload(input: AssemblerInput): LLMMessage[] {
                 // 原生音频多模态：当为最新一条语音时，挂载 input_audio 切片
                 if (msg.mediaType === "audio" && rawAudioUrl && idx === historyLen - 1) {
                     contentParts = [
-                        { type: "text", text: `[语音条: ${msg.mediaData?.label || "语音内容"}]` },
+                        { type: "text", text: `（用户发送的原生语音，请聆听语气、背景音和情绪并作出沉浸回复）：` },
                         { type: "input_audio", input_audio: { dataUrl: rawAudioUrl, mimeType: "audio/webm" } }
                     ];
-                    body = `[语音条: ${msg.mediaData?.label || "语音内容"}]`;
+                    body = `[原生语音留言]`;
                 } else {
                     const visionImageUrl = visionEnabled ? getPromptVisionImageUrl(msg) : undefined;
                     if (visionImageUrl) {
