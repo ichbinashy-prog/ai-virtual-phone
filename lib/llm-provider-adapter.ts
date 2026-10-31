@@ -346,7 +346,11 @@ function stringifyEnumValues(value: unknown): unknown {
 
 function textFromContent(content: string | LLMContentPart[]): string {
     if (typeof content === "string") return content;
-    return content.map((part) => part.type === "text" ? part.text : "[vision content omitted]").join("\n");
+    return content.map((part) => {
+        if (part.type === "text") return part.text;
+        if (part.type === "input_audio") return "[语音内容]";
+        return "[vision content omitted]";
+    }).join("\n");
 }
 
 function debugTextFromUnknownContent(content: unknown): string {
@@ -437,8 +441,23 @@ export function debugMessagesFromRequest(request: LlmRequestPayload): LlmDebugMe
     });
 }
 
-function openAIContent(content: string | LLMContentPart[]): string | LLMContentPart[] {
-    return content;
+function openAIContent(content: string | LLMContentPart[]): string | unknown[] {
+    if (typeof content === "string") return content;
+    return content.map((part) => {
+        if (part.type === "input_audio") {
+            const parsed = parseDataUrl(part.input_audio.dataUrl);
+            if (!parsed) return { type: "text", text: "[语音解析失败]" };
+            // OpenAI 兼容格式 (如 GPT-4o-audio / 很多中转站代理 Gemini 用的格式)
+            return {
+                type: "input_audio",
+                input_audio: {
+                    data: parsed.data,
+                    format: parsed.mimeType.includes("wav") ? "wav" : (parsed.mimeType.includes("mp3") ? "mp3" : "wav"),
+                },
+            };
+        }
+        return part;
+    });
 }
 
 function parseDataUrl(url: string): { mimeType: string; data: string } | null {
@@ -468,6 +487,18 @@ function geminiContentFromParts(content: string | LLMContentPart[]): unknown[] {
     if (typeof content === "string") return content ? [{ text: content }] : [];
     return content.flatMap<unknown>((part) => {
         if (part.type === "text") return part.text ? [{ text: part.text }] : [];
+        if (part.type === "input_audio") {
+            const parsed = parseDataUrl(part.input_audio.dataUrl);
+            if (!parsed) return [{ text: "[语音解析失败]" }];
+            // 确保真实的 MIME 类型：手机录音通常为 audio/webm 或 audio/mp4
+            const mimeType = parsed.mimeType && parsed.mimeType.startsWith("audio/") ? parsed.mimeType : "audio/webm";
+            return [{
+                inlineData: {
+                    mimeType,
+                    data: parsed.data,
+                },
+            }];
+        }
         const parsed = parseDataUrl(part.image_url.url);
         if (!parsed) return [{ text: "[image omitted: unsupported image URL]" }];
         return [{
