@@ -457,7 +457,7 @@ export function VoiceRecordModal({ characterId, onSend, onClose }: VoiceRecordMo
     };
 
     // 原生多模态模式下：只要录制到了音频 (audioDataUrl)，即使 STT 识别不出文本也可以直接发送
-    const canSend = inputMode === "text" ? !!manualText.trim() : (state === "done" && (!!finalText.trim() || !!audioDataUrl));
+    const canSend = inputMode === "text" ? !!manualText.trim() : state === "done" && !!finalText.trim();
 
     return (
         <div className="modal-overlay" onClick={onClose}>
@@ -507,9 +507,7 @@ export function VoiceRecordModal({ characterId, onSend, onClose }: VoiceRecordMo
                         </div>
                     )}
                     {state === "done" && (
-                        <div className="ts-14 text-[var(--c-text)] text-center px-4 leading-relaxed">
-                            {finalText || (audioDataUrl ? "🎙️ 已录制语音（原生多模态直接理解）" : "")}
-                        </div>
+                        <div className="ts-14 text-[var(--c-text)] text-center px-4 leading-relaxed">{finalText}</div>
                     )}
                     {(state === "recording" || state === "processing") && (
                         <span className="ts-13 text-[var(--c-icon)]">{interim || "点击停止录音"}</span>
@@ -521,7 +519,7 @@ export function VoiceRecordModal({ characterId, onSend, onClose }: VoiceRecordMo
                         onClick={() => {
                             if (!canSend) return;
                             if (inputMode === "text") onSend(manualText.trim());
-                            else onSend(finalText.trim() || "[语音消息]", audioDataUrl || undefined);
+                            else onSend(finalText.trim(), audioDataUrl || undefined);
                         }}
                         disabled={!canSend}
                         className="ui-btn ui-btn-success flex-1"

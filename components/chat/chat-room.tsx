@@ -6770,8 +6770,7 @@ export function ChatRoom({ session, onBack, onDeleted }: ChatRoomProps) {
                     characterId={session.contactId}
                     onSend={(text, audioDataUrl) => {
                         setRichModal(null);
-                        // 确保音频 DataURL 被明确传递与持久化
-                        sendRichMessage("audio", { label: text, audioUrl: audioDataUrl }, text || "[语音消息]", audioDataUrl);
+                        sendRichMessage("audio", { label: text }, "", audioDataUrl);
                     }}
                     onClose={() => setRichModal(null)}
                 />

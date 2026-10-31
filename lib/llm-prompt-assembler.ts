@@ -23,8 +23,7 @@ export type LLMToolCallPayload = { id: string; name: string; args: Record<string
 
 export type LLMContentPart =
     | { type: "text"; text: string }
-    | { type: "image_url"; image_url: { url: string; detail?: "low" | "high" | "auto" } }
-    | { type: "input_audio"; input_audio: { dataUrl: string; mimeType: string } };
+    | { type: "image_url"; image_url: { url: string; detail?: "low" | "high" | "auto" } };
 
 export type LLMMessage = {
     role: LLMMessageRole;
@@ -145,7 +144,6 @@ type PromptBlock = {
     marker: string;
     fromHistory?: boolean;
     imageUrl?: string;      // vision: image URL/data URL attached to this prompt block
-    audioUrl?: string;      // native audio: audio Data URL attached to this prompt block
     reasoning?: string;
     openRouterReasoningDetails?: unknown[];
     toolCalls?: LLMToolCallPayload[];
@@ -187,13 +185,6 @@ function getPromptVisionImageUrl(msg: ChatMessage): string | undefined {
     if (msg.role === "user" && msg.mediaType === "sticker") {
         const stickerUrl = msg.mediaData?.stickerUrl?.trim();
         return stickerUrl || undefined;
-    }
-    return undefined;
-}
-
-function getPromptAudioUrl(msg: ChatMessage): string | undefined {
-    if (msg.mediaType === "audio") {
-        return msg.mediaUrl || (msg.mediaData as any)?.audioUrl || undefined;
     }
     return undefined;
 }
@@ -544,26 +535,18 @@ function pushChronologicalShortTermBlocks(params: {
 
         let body = stripStateAndInnerForPrompt(msg.content);
         let imageUrl: string | undefined;
-        let audioUrl: string | undefined;
 
         if (msg.mediaType) {
-            const rawAudioUrl = getPromptAudioUrl(msg);
-            // 只要是最新的那条语音，给它授予专属音频特权通道
-            if (msg.mediaType === "audio" && rawAudioUrl && item.historyIndex === history.length - 1) {
-                audioUrl = rawAudioUrl;
-                body = `[原生语音留言]`;
+            const visionImageUrl = visionEnabled ? getPromptVisionImageUrl(msg) : undefined;
+            if (visionImageUrl) {
+                body = formatDirectVisionBody(msg, resolvedUserName, characterName);
+                imageUrl = visionImageUrl;
             } else {
-                const visionImageUrl = visionEnabled ? getPromptVisionImageUrl(msg) : undefined;
-                if (visionImageUrl) {
-                    body = formatDirectVisionBody(msg, resolvedUserName, characterName);
-                    imageUrl = visionImageUrl;
-                } else {
-                    body = formatRichMediaForHistory(msg, resolvedUserName, characterName);
-                }
+                body = formatRichMediaForHistory(msg, resolvedUserName, characterName);
             }
         }
 
-        if (!body.trim() && !imageUrl && !audioUrl) return;
+        if (!body.trim() && !imageUrl) return;
 
         const isAssistantImage = imageUrl && msg.role === "assistant" && msg.mediaType === "media_file";
         const text = isAssistantImage
@@ -577,7 +560,6 @@ function pushChronologicalShortTermBlocks(params: {
             marker: `History [${item.historyIndex}]`,
             fromHistory: true,
             imageUrl,
-            audioUrl,
         });
 
         if (msg.isRetracted) {
@@ -1016,20 +998,13 @@ export function assemblePromptPayload(input: AssemblerInput): LLMMessage[] {
 
             // Format rich-media messages as bracket markers so the AI sees them in context
     console.log("[PromptAssembler] message mediaType:", msg.mediaType, "mediaUrl:", msg.mediaUrl, "mediaData:", msg.mediaData);
-            let audioUrl: string | undefined;
             if (msg.mediaType) {
-                const rawAudioUrl = getPromptAudioUrl(msg);
-                if (msg.mediaType === "audio" && rawAudioUrl && idx === historyLen - 1) {
-                    audioUrl = rawAudioUrl;
-                    body = `[原生语音留言]`;
+                const visionImageUrl = visionEnabled ? getPromptVisionImageUrl(msg) : undefined;
+                if (visionImageUrl) {
+                    body = formatDirectVisionBody(msg, resolvedUserName, character?.name || "对方");
+                    imageUrl = visionImageUrl;
                 } else {
-                    const visionImageUrl = visionEnabled ? getPromptVisionImageUrl(msg) : undefined;
-                    if (visionImageUrl) {
-                        body = formatDirectVisionBody(msg, resolvedUserName, character?.name || "对方");
-                        imageUrl = visionImageUrl;
-                    } else {
-                        body = formatRichMediaForHistory(msg, resolvedUserName, character?.name || "对方");
-                    }
+                    body = formatRichMediaForHistory(msg, resolvedUserName, character?.name || "对方");
                 }
             }
 
@@ -1094,28 +1069,7 @@ export function assemblePromptPayload(input: AssemblerInput): LLMMessage[] {
                !finalPayload[finalPayload.length - 1].toolCalls?.length &&
                finalPayload[finalPayload.length - 1].role !== "tool");
 
-        if (b.audioUrl) {
-            // Native Audio message: 完全对标 Vision 专用特权通道 (never merged)
-            const parts: LLMContentPart[] = [];
-            if (processedText) parts.push({ type: "text", text: processedText });
-            parts.push({
-                type: "input_audio",
-                input_audio: {
-                    dataUrl: b.audioUrl,
-                    mimeType: "audio/webm",
-                },
-            });
-            finalPayload.push({
-                role: b.role,
-                content: parts,
-                reasoning: b.reasoning,
-                openRouterReasoningDetails: b.openRouterReasoningDetails,
-                toolCalls: b.toolCalls,
-                toolCallId: b.toolCallId,
-                name: b.toolName,
-                _debugMeta: { marker: b.marker, depth: b.depth, order: b.order, _fromHistory: b.fromHistory },
-            });
-        } else if (b.imageUrl) {
+        if (b.imageUrl) {
             // Vision message: build multi-part content with image (never merged)
             const parts: LLMContentPart[] = [];
             if (processedText) parts.push({ type: "text", text: processedText });
@@ -2296,28 +2250,7 @@ export function assembleGroupPromptPayload(input: GroupAssemblerInput): LLMMessa
             !finalPayload[finalPayload.length - 1].toolCalls?.length &&
             finalPayload[finalPayload.length - 1].role !== "tool";
 
-        if (b.audioUrl) {
-            // Native Audio message: 完全对标 Vision 专用特权通道 (never merged)
-            const parts: LLMContentPart[] = [];
-            if (processedText) parts.push({ type: "text", text: processedText });
-            parts.push({
-                type: "input_audio",
-                input_audio: {
-                    dataUrl: b.audioUrl,
-                    mimeType: "audio/webm",
-                },
-            });
-            finalPayload.push({
-                role: b.role,
-                content: parts,
-                reasoning: b.reasoning,
-                openRouterReasoningDetails: b.openRouterReasoningDetails,
-                toolCalls: b.toolCalls,
-                toolCallId: b.toolCallId,
-                name: b.toolName,
-                _debugMeta: { marker: b.marker, depth: b.depth, order: b.order, _fromHistory: b.fromHistory },
-            });
-        } else if (b.imageUrl) {
+        if (b.imageUrl) {
             // Vision message: build multi-part content with image (never merged)
             const parts: LLMContentPart[] = [];
             if (processedText) parts.push({ type: "text", text: processedText });
