@@ -145,6 +145,7 @@ type PromptBlock = {
     marker: string;
     fromHistory?: boolean;
     imageUrl?: string;      // vision: image URL/data URL attached to this prompt block
+    audioUrl?: string;      // native audio: audio Data URL attached to this prompt block
     reasoning?: string;
     openRouterReasoningDetails?: unknown[];
     toolCalls?: LLMToolCallPayload[];
@@ -186,6 +187,13 @@ function getPromptVisionImageUrl(msg: ChatMessage): string | undefined {
     if (msg.role === "user" && msg.mediaType === "sticker") {
         const stickerUrl = msg.mediaData?.stickerUrl?.trim();
         return stickerUrl || undefined;
+    }
+    return undefined;
+}
+
+function getPromptAudioUrl(msg: ChatMessage): string | undefined {
+    if (msg.mediaType === "audio") {
+        return msg.mediaUrl || (msg.mediaData as any)?.audioUrl || undefined;
     }
     return undefined;
 }
@@ -535,17 +543,14 @@ function pushChronologicalShortTermBlocks(params: {
         prevWasHistory = true;
 
         let body = stripStateAndInnerForPrompt(msg.content);
-        let contentParts: LLMContentPart[] | undefined;
         let imageUrl: string | undefined;
+        let audioUrl: string | undefined;
 
         if (msg.mediaType) {
-            const rawAudioUrl = msg.mediaUrl || (msg.mediaData as any)?.audioUrl;
-            // 原生音频多模态：命中 Chronological 时间线模式下的最新语音
+            const rawAudioUrl = getPromptAudioUrl(msg);
+            // 只要是最新的那条语音，给它授予专属音频特权通道
             if (msg.mediaType === "audio" && rawAudioUrl && item.historyIndex === history.length - 1) {
-                contentParts = [
-                    { type: "text", text: `（用户发送的原生语音，请聆听语气、背景音和情绪并作出沉浸回复）：` },
-                    { type: "input_audio", input_audio: { dataUrl: rawAudioUrl, mimeType: "audio/webm" } }
-                ];
+                audioUrl = rawAudioUrl;
                 body = `[原生语音留言]`;
             } else {
                 const visionImageUrl = visionEnabled ? getPromptVisionImageUrl(msg) : undefined;
@@ -558,21 +563,21 @@ function pushChronologicalShortTermBlocks(params: {
             }
         }
 
-        if (!body.trim() && !imageUrl && !contentParts) return;
+        if (!body.trim() && !imageUrl && !audioUrl) return;
 
         const isAssistantImage = imageUrl && msg.role === "assistant" && msg.mediaType === "media_file";
         const text = isAssistantImage
             ? formatAssistantImageHistoryText(msg, body, Boolean(showTs), ts)
             : (showTs ? `${ts}\n${body}` : body);
         blocks.push({
-            text: contentParts ? "" : text,
-            contentParts,
+            text,
             role: isAssistantImage ? "user" : promptRole,
             depth,
             order: 999,
             marker: `History [${item.historyIndex}]`,
             fromHistory: true,
             imageUrl,
+            audioUrl,
         });
 
         if (msg.isRetracted) {
@@ -1011,21 +1016,11 @@ export function assemblePromptPayload(input: AssemblerInput): LLMMessage[] {
 
             // Format rich-media messages as bracket markers so the AI sees them in context
     console.log("[PromptAssembler] message mediaType:", msg.mediaType, "mediaUrl:", msg.mediaUrl, "mediaData:", msg.mediaData);
-            let contentParts: LLMContentPart[] | undefined;
+            let audioUrl: string | undefined;
             if (msg.mediaType) {
-                const rawAudioUrl = msg.mediaUrl || (msg.mediaData as any)?.audioUrl;
-                // 彻底放开：只要是最新一条消息（idx === historyLen - 1）且是语音，不管有没有 rawAudioUrl，强制挂载 input_audio，有 audioUrl 就传音频，没有就带标记
-                if (msg.mediaType === "audio" && idx === historyLen - 1) {
-                    if (rawAudioUrl) {
-                        contentParts = [
-                            { type: "text", text: `（用户发送的原生语音，请聆听语气、背景音和情绪并作出沉浸回复）：` },
-                            { type: "input_audio", input_audio: { dataUrl: rawAudioUrl, mimeType: "audio/webm" } }
-                        ];
-                    } else {
-                        contentParts = [
-                            { type: "text", text: `[系统检测到用户发送了语音消息，但音频数据未获取到]` }
-                        ];
-                    }
+                const rawAudioUrl = getPromptAudioUrl(msg);
+                if (msg.mediaType === "audio" && rawAudioUrl && idx === historyLen - 1) {
+                    audioUrl = rawAudioUrl;
                     body = `[原生语音留言]`;
                 } else {
                     const visionImageUrl = visionEnabled ? getPromptVisionImageUrl(msg) : undefined;
@@ -1038,20 +1033,20 @@ export function assemblePromptPayload(input: AssemblerInput): LLMMessage[] {
                 }
             }
 
-            if (!body.trim() && !imageUrl) return;
+            if (!body.trim() && !imageUrl && !audioUrl) return;
             const isAssistantImage = imageUrl && msg.role === "assistant" && msg.mediaType === "media_file";
             const text = isAssistantImage
                 ? formatAssistantImageHistoryText(msg, body, Boolean(showTs), ts)
                 : (showTs ? `${ts}\n${body}` : body);
             blocks.push({
-                text: contentParts ? "" : text,
-                contentParts,
+                text,
                 role: isAssistantImage ? "user" : promptRole,
                 depth: distFromBottom,
                 order: 999,
                 marker: `History [${distFromBottom}]`,
                 fromHistory: true,
                 imageUrl,
+                audioUrl,
             });
 
             // Retracted: keep the original message above, then append a system notice
@@ -1099,11 +1094,20 @@ export function assemblePromptPayload(input: AssemblerInput): LLMMessage[] {
                !finalPayload[finalPayload.length - 1].toolCalls?.length &&
                finalPayload[finalPayload.length - 1].role !== "tool");
 
-        if (b.contentParts) {
-            // 原生多模态内容（含音频或多模态切片）
+        if (b.audioUrl) {
+            // Native Audio message: 完全对标 Vision 专用特权通道 (never merged)
+            const parts: LLMContentPart[] = [];
+            if (processedText) parts.push({ type: "text", text: processedText });
+            parts.push({
+                type: "input_audio",
+                input_audio: {
+                    dataUrl: b.audioUrl,
+                    mimeType: "audio/webm",
+                },
+            });
             finalPayload.push({
                 role: b.role,
-                content: b.contentParts,
+                content: parts,
                 reasoning: b.reasoning,
                 openRouterReasoningDetails: b.openRouterReasoningDetails,
                 toolCalls: b.toolCalls,
@@ -2292,11 +2296,20 @@ export function assembleGroupPromptPayload(input: GroupAssemblerInput): LLMMessa
             !finalPayload[finalPayload.length - 1].toolCalls?.length &&
             finalPayload[finalPayload.length - 1].role !== "tool";
 
-        if (b.contentParts) {
-            // 原生多模态内容（含音频或多模态切片）
+        if (b.audioUrl) {
+            // Native Audio message: 完全对标 Vision 专用特权通道 (never merged)
+            const parts: LLMContentPart[] = [];
+            if (processedText) parts.push({ type: "text", text: processedText });
+            parts.push({
+                type: "input_audio",
+                input_audio: {
+                    dataUrl: b.audioUrl,
+                    mimeType: "audio/webm",
+                },
+            });
             finalPayload.push({
                 role: b.role,
-                content: b.contentParts,
+                content: parts,
                 reasoning: b.reasoning,
                 openRouterReasoningDetails: b.openRouterReasoningDetails,
                 toolCalls: b.toolCalls,
