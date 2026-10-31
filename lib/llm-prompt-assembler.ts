@@ -535,26 +535,38 @@ function pushChronologicalShortTermBlocks(params: {
         prevWasHistory = true;
 
         let body = stripStateAndInnerForPrompt(msg.content);
+        let contentParts: LLMContentPart[] | undefined;
         let imageUrl: string | undefined;
 
         if (msg.mediaType) {
-            const visionImageUrl = visionEnabled ? getPromptVisionImageUrl(msg) : undefined;
-            if (visionImageUrl) {
-                body = formatDirectVisionBody(msg, resolvedUserName, characterName);
-                imageUrl = visionImageUrl;
+            const rawAudioUrl = msg.mediaUrl || (msg.mediaData as any)?.audioUrl;
+            // 原生音频多模态：命中 Chronological 时间线模式下的最新语音
+            if (msg.mediaType === "audio" && rawAudioUrl && item.historyIndex === history.length - 1) {
+                contentParts = [
+                    { type: "text", text: `（用户发送的原生语音，请聆听语气、背景音和情绪并作出沉浸回复）：` },
+                    { type: "input_audio", input_audio: { dataUrl: rawAudioUrl, mimeType: "audio/webm" } }
+                ];
+                body = `[原生语音留言]`;
             } else {
-                body = formatRichMediaForHistory(msg, resolvedUserName, characterName);
+                const visionImageUrl = visionEnabled ? getPromptVisionImageUrl(msg) : undefined;
+                if (visionImageUrl) {
+                    body = formatDirectVisionBody(msg, resolvedUserName, characterName);
+                    imageUrl = visionImageUrl;
+                } else {
+                    body = formatRichMediaForHistory(msg, resolvedUserName, characterName);
+                }
             }
         }
 
-        if (!body.trim() && !imageUrl) return;
+        if (!body.trim() && !imageUrl && !contentParts) return;
 
         const isAssistantImage = imageUrl && msg.role === "assistant" && msg.mediaType === "media_file";
         const text = isAssistantImage
             ? formatAssistantImageHistoryText(msg, body, Boolean(showTs), ts)
             : (showTs ? `${ts}\n${body}` : body);
         blocks.push({
-            text,
+            text: contentParts ? "" : text,
+            contentParts,
             role: isAssistantImage ? "user" : promptRole,
             depth,
             order: 999,
