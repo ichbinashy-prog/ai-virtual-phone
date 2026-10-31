@@ -998,15 +998,22 @@ export function assemblePromptPayload(input: AssemblerInput): LLMMessage[] {
             let imageUrl: string | undefined;
 
             // Format rich-media messages as bracket markers so the AI sees them in context
+    console.log("[PromptAssembler] message mediaType:", msg.mediaType, "mediaUrl:", msg.mediaUrl, "mediaData:", msg.mediaData);
             let contentParts: LLMContentPart[] | undefined;
             if (msg.mediaType) {
                 const rawAudioUrl = msg.mediaUrl || (msg.mediaData as any)?.audioUrl;
-                // 原生音频多模态：当为最新一条语音时，挂载 input_audio 切片
-                if (msg.mediaType === "audio" && rawAudioUrl && idx === historyLen - 1) {
-                    contentParts = [
-                        { type: "text", text: `（用户发送的原生语音，请聆听语气、背景音和情绪并作出沉浸回复）：` },
-                        { type: "input_audio", input_audio: { dataUrl: rawAudioUrl, mimeType: "audio/webm" } }
-                    ];
+                // 彻底放开：只要是最新一条消息（idx === historyLen - 1）且是语音，不管有没有 rawAudioUrl，强制挂载 input_audio，有 audioUrl 就传音频，没有就带标记
+                if (msg.mediaType === "audio" && idx === historyLen - 1) {
+                    if (rawAudioUrl) {
+                        contentParts = [
+                            { type: "text", text: `（用户发送的原生语音，请聆听语气、背景音和情绪并作出沉浸回复）：` },
+                            { type: "input_audio", input_audio: { dataUrl: rawAudioUrl, mimeType: "audio/webm" } }
+                        ];
+                    } else {
+                        contentParts = [
+                            { type: "text", text: `[系统检测到用户发送了语音消息，但音频数据未获取到]` }
+                        ];
+                    }
                     body = `[原生语音留言]`;
                 } else {
                     const visionImageUrl = visionEnabled ? getPromptVisionImageUrl(msg) : undefined;
