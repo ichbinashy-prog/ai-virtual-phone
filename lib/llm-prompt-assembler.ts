@@ -2210,10 +2210,12 @@ export function assembleGroupPromptPayload(input: GroupAssemblerInput): LLMMessa
             }
 
             // 升级：支持原生音频输入 (Native Audio)
-            if (msg.mediaType === "audio" && msg.mediaUrl && idx === historyLen - 1) {
+            // 兼容读取 msg.mediaUrl 或 msg.mediaData?.audioUrl
+            const rawAudioUrl = msg.mediaUrl || (msg.mediaData as any)?.audioUrl;
+            if (msg.mediaType === "audio" && rawAudioUrl && idx === historyLen - 1) {
                 content = [
-                    { type: "text", text: body },
-                    { type: "input_audio", input_audio: { dataUrl: msg.mediaUrl, mimeType: "audio/wav" } }
+                    { type: "text", text: body || (msg.mediaData?.label as string) || "[语音消息]" },
+                    { type: "input_audio", input_audio: { dataUrl: rawAudioUrl, mimeType: "audio/webm" } }
                 ];
             }
 
