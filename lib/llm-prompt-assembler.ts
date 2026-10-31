@@ -998,13 +998,24 @@ export function assemblePromptPayload(input: AssemblerInput): LLMMessage[] {
             let imageUrl: string | undefined;
 
             // Format rich-media messages as bracket markers so the AI sees them in context
+            let contentParts: LLMContentPart[] | undefined;
             if (msg.mediaType) {
-                const visionImageUrl = visionEnabled ? getPromptVisionImageUrl(msg) : undefined;
-                if (visionImageUrl) {
-                    body = formatDirectVisionBody(msg, resolvedUserName, character?.name || "对方");
-                    imageUrl = visionImageUrl;
+                const rawAudioUrl = msg.mediaUrl || (msg.mediaData as any)?.audioUrl;
+                // 原生音频多模态：当为最新一条语音时，挂载 input_audio 切片
+                if (msg.mediaType === "audio" && rawAudioUrl && idx === historyLen - 1) {
+                    contentParts = [
+                        { type: "text", text: `[语音条: ${msg.mediaData?.label || "语音内容"}]` },
+                        { type: "input_audio", input_audio: { dataUrl: rawAudioUrl, mimeType: "audio/webm" } }
+                    ];
+                    body = `[语音条: ${msg.mediaData?.label || "语音内容"}]`;
                 } else {
-                    body = formatRichMediaForHistory(msg, resolvedUserName, character?.name || "对方");
+                    const visionImageUrl = visionEnabled ? getPromptVisionImageUrl(msg) : undefined;
+                    if (visionImageUrl) {
+                        body = formatDirectVisionBody(msg, resolvedUserName, character?.name || "对方");
+                        imageUrl = visionImageUrl;
+                    } else {
+                        body = formatRichMediaForHistory(msg, resolvedUserName, character?.name || "对方");
+                    }
                 }
             }
 
@@ -1014,7 +1025,8 @@ export function assemblePromptPayload(input: AssemblerInput): LLMMessage[] {
                 ? formatAssistantImageHistoryText(msg, body, Boolean(showTs), ts)
                 : (showTs ? `${ts}\n${body}` : body);
             blocks.push({
-                text,
+                text: contentParts ? "" : text,
+                contentParts,
                 role: isAssistantImage ? "user" : promptRole,
                 depth: distFromBottom,
                 order: 999,
