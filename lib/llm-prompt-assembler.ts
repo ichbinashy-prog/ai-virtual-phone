@@ -23,7 +23,8 @@ export type LLMToolCallPayload = { id: string; name: string; args: Record<string
 
 export type LLMContentPart =
     | { type: "text"; text: string }
-    | { type: "image_url"; image_url: { url: string; detail?: "low" | "high" | "auto" } };
+    | { type: "image_url"; image_url: { url: string; detail?: "low" | "high" | "auto" } }
+    | { type: "input_audio"; input_audio: { dataUrl: string; mimeType: string } };
 
 export type LLMMessage = {
     role: LLMMessageRole;
