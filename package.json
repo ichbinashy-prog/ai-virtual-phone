@@ -18,15 +18,10 @@
     "build:glass-icons": "node scripts/build-glass-icons.mjs"
   },
   "dependencies": {
-    "@gltf-transform/functions": "^4.4.1",
     "@heroicons/react": "^2.2.0",
     "@mdi/js": "^7.4.47",
     "@phosphor-icons/react": "^2.1.10",
-    "@react-three/drei": "^10.7.7",
-    "@react-three/fiber": "^9.5.0",
-    "@react-three/postprocessing": "^3.0.4",
     "@supabase/realtime-js": "^2.110.7",
-    "@types/three": "^0.183.1",
     "@types/web-push": "^3.6.4",
     "d3-delaunay": "^6.0.4",
     "dexie": "^4.3.0",
@@ -45,13 +40,10 @@
     "remark-breaks": "^4.0.0",
     "remark-cjk-friendly": "^2.3.1",
     "remark-gfm": "^4.0.1",
-    "three": "^0.183.2",
     "undici": "^7.26.0",
     "web-push": "^3.6.7"
   },
   "devDependencies": {
-    "@gltf-transform/core": "^4.3.0",
-    "@gltf-transform/extensions": "^4.3.0",
     "@tailwindcss/postcss": "^4.2.1",
     "@types/d3-delaunay": "^6.0.4",
     "@types/dompurify": "^3.0.5",
