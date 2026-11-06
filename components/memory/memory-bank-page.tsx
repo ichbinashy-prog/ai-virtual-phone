@@ -382,17 +382,14 @@ export function MemoryBankPage({ view, selectedCharId, onSelectChar, onNotice }:
         if (!selectedCharId || rebuildingCore) return;
         setRebuildingCore(true);
         try {
-            const lastCoreSummarizedAt = getLastCoreSummarizedTimestamp(selectedCharId);
             const longTermEntries = await loadMemoryEntriesByType(selectedCharId, "long_term");
-            const pendingLongTermCount = longTermEntries.filter(entry =>
-                !lastCoreSummarizedAt || entry.createdAt > lastCoreSummarizedAt
-            ).length;
-            if (pendingLongTermCount === 0) {
-                showNotice(lastCoreSummarizedAt ? "没有新的长期记忆需要总结" : "没有可用于总结核心记忆的长期记忆");
+            if (longTermEntries.length === 0) {
+                showNotice("没有可用于总结核心记忆的长期记忆");
                 return;
             }
 
-            const result = await runCoreMemoryPipeline(selectedCharId, selectedChar?.name ?? "");
+            // 手动触发单例演进：强制基于全局长期记忆重新整合与迭代
+            const result = await runCoreMemoryPipeline(selectedCharId, selectedChar?.name ?? "", { force: true });
             if (result.success) {
                 showNotice(result.rebuiltCount ? `核心记忆已重建（${result.rebuiltCount}条）` : "核心记忆已重建");
                 loadDetailData(selectedCharId);
