@@ -4,6 +4,7 @@ import {
     loadMemoryConfig,
     loadMemoryEntriesByType,
     saveMemoryEntry,
+    deleteMemoryEntries,
     getCoreMemoryCounter,
     resetCoreMemoryCounter,
     getLastCoreSummarizedTimestamp,
@@ -51,9 +52,13 @@ export async function runCoreMemoryPipeline(
         return { success: false, error: "未配置记忆总结 API（请在绑定配置 → 辅助API绑定中设置）" };
     }
 
-    const afterTimestamp = options?.force ? undefined : (getLastCoreSummarizedTimestamp(characterId) ?? undefined);
+    // 1. 读取该角色现有的所有核心记忆（单例模式下最多一条，若历史有遗留的多条后续会一并清理）
+    const existingCoreEntries = await loadMemoryEntriesByType(characterId, "core");
+    const existingCore = existingCoreEntries[0];
+    const previousSummary = existingCore?.content?.trim() || "暂无历史核心记忆（首次提炼）";
+
+    // 2. 永远取该角色从始至终全部长期记忆进行全貌评估
     const entries = allLongTermEntries
-        .filter(entry => !afterTimestamp || entry.createdAt > afterTimestamp)
         .map(entry => ({
             id: entry.id,
             timestamp: entry.createdAt,
@@ -65,22 +70,31 @@ export async function runCoreMemoryPipeline(
         }))
         .sort((a, b) => a.timestamp.localeCompare(b.timestamp));
 
-    if (entries.length === 0) {
-        if (!options?.force) resetCoreMemoryCounter(characterId);
-        return { success: false, error: "没有新的长期记忆需要总结" };
-    }
-
     const formatted = formatCoreTimelineForSummarization(entries);
     if (!formatted) return { success: false, error: "格式化核心记忆数据失败" };
 
     const { eventsText, earliest, latest } = formatted;
-    const promptTemplate = config.coreMemoryPrompt?.trim() || DEFAULT_CORE_MEMORY_PROMPT;
-    const prompt = promptTemplate
-        .replace(/\{\{char\}\}/gi, characterName)
-        .replace(/\{\{earliest\}\}/gi, earliest)
-        .replace(/\{\{latest\}\}/gi, latest)
-        .replace(/\{\{events\}\}/gi, eventsText)
-        .replace(/\{\{longTermMemories\}\}/gi, eventsText);
+
+    // 3. 构造增量演进式核心记忆提炼 Prompt
+    const prompt = `你是角色【${characterName}】与用户（User）之间最核心记忆与全局关系的档案管理员。
+
+你的任务是：基于【现有的核心记忆档案】，结合从始至终记录的【全部长期记忆事件】，更新并迭代出唯一一份最新、最凝练的核心记忆。
+
+【现有的核心记忆档案】：
+${previousSummary}
+
+【全部长期记忆事件（按时间序）】：
+${eventsText}
+
+【更新与整合准则】：
+1. 演进与覆写：对比旧档案与新事件，如果关系状态发生跃迁（如从朋友到恋人、产生误会或关系破裂）、重大认知改变，必须更新或覆盖旧档案中的陈旧描述，消除一切前后矛盾。
+2. 极端凝练：只保留对双方关系有不可逆影响的里程碑、关键身份定义、彼此最不可动摇的核心认知。剔除一切日常琐事、偶发情绪波动。
+3. 篇幅与格式限制：
+   - 最终必须且只能输出【一段话】（80 ~ 180 字）。
+   - 纯第三人称客观事实陈述。
+   - 严禁使用分点列表（如 1. 2. 3. 或 - ）、严禁带标题、严禁 JSON、严禁任何多余解释与客套话。直接输出正文。
+
+最新核心记忆：`;
 
     const result = await simpleLLMCall(
         apiConfig,
@@ -115,14 +129,20 @@ export async function runCoreMemoryPipeline(
     }
     const sourceSessionIds = Array.from(new Set(entries.flatMap(entry => entry.sourceSessionIds)));
 
+    // 4. 清理旧核心记忆，实现单例覆盖
+    const oldIds = existingCoreEntries.map(e => e.id);
+    if (oldIds.length > 0) {
+        await deleteMemoryEntries(oldIds);
+    }
+
     const coreEntry: MemoryEntry = {
-        id: `mem_core_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+        id: `mem_core_${characterId}_singleton`,
         characterId,
         sourceApp: dominantSource,
         type: "core",
         content: summary,
-        importance: 0.95,
-        createdAt: now,
+        importance: 1.0,
+        createdAt: existingCore?.createdAt || now,
         updatedAt: now,
         metadata: {
             summarizedLongTermEntries: entries.length,
