@@ -393,6 +393,7 @@ export function ChatSettingsPanel({
     const [offlineSummaryRetry, setOfflineSummaryRetry] = useState(session.offlineSummaryRetry !== false);
     const [collapseBilingualTranslation, setCollapseBilingualTranslation] = useState(session.collapseBilingualTranslation !== false);
     const [discardInvalidStickers, setDiscardInvalidStickers] = useState(session.discardInvalidStickers === true);
+    const [floatMindEnabled, setFloatMindEnabled] = useState(session.floatMindEnabled === true);
     // 流式生成：按会话区分（线上/线下），存 ChatSession 字段，默认关
     const [streamOnline, setStreamOnline] = useState(session.streamOnline === true);
     const [streamOffline, setStreamOffline] = useState(session.streamOffline === true);
@@ -1092,6 +1093,24 @@ export function ChatSettingsPanel({
                                 />
                             </div>
                         </div>
+                        {!session.isGroup && (
+                            <div className="menu-item">
+                                <ChatInfoIcon icon={Sparkles} color={BINDING_ACCENTS.memory} />
+                                <div className="menu-label-group">
+                                    <span className="menu-label">日间自主思考 (Float)</span>
+                                    <span className="menu-desc">清醒且非对话期间，每半小时自主产生念头入库 OB</span>
+                                </div>
+                                <div className="menu-right">
+                                    <Toggle
+                                        checked={floatMindEnabled}
+                                        onChange={c => {
+                                            setFloatMindEnabled(c);
+                                            updateSession({ floatMindEnabled: c });
+                                        }}
+                                    />
+                                </div>
+                            </div>
+                        )}
                         <div className="menu-item">
                             <ChatInfoIcon icon={Sparkles} color={BINDING_ACCENTS.api} />
                             <div className="menu-label-group">

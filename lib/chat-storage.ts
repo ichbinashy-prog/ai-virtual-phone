@@ -66,6 +66,8 @@ export type ChatSession = {
      * 关掉就只调一次 API，那一轮没摘要（不进短期记忆的事件流）。按次计费的接口想省一半调用时关它。
      */
     offlineSummaryRetry?: boolean;
+    /** 日间自主走神（float）：在清醒且无对话时，每隔约30分钟自主产生念头并记入外脑 */
+    floatMindEnabled?: boolean;
     // Group chat fields
     isGroup?: boolean;
     groupName?: string;
