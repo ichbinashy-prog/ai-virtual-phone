@@ -593,6 +593,7 @@ async function fireIdleReconnect(rule: IdleReconnectRule, lastUserAt: number) {
                 appTags: ["chat", "text", "idle_wake"],
                 timedWakeElapsedMinutes: elapsedMinutes,
                 timedWakeIntent: rule.intent || undefined,
+                forceEnableTools: true,
             },
         );
 

@@ -1224,9 +1224,9 @@ function OfflinePushSettingsPage({ onBack }: { onBack: () => void }) {
 
 1. 【选择联系对方】：如果你此刻很想找对方、有具体的事想聊或想问，请直接输出你想发送的对话内容（会发进聊天框）。
 2. 【选择静默思考（Float）】：如果你更想沉浸在自己的独处思绪中，不想打扰用户：
-   - 你可以自由调动外部工具（如联网检索你好奇的事物、回溯旧日回忆）；
-   - 若产生了微妙的触动、打算以后再提的念头，请调用 hold 工具将其记录入外脑，并打上 "float" 标签；
-   - 完成思考与记录后，你的文本回复必须以 [静默思考] 结尾（系统会自动拦截该气泡，对聊天框保持完全静默）。`;
+   - 你可以自由调动外部工具（如调用 breath_search / feel 回溯旧日回忆、或联网搜索你好奇的事物）；
+   - 若产生了微妙的触动、打算以后再提的念头，请直接调用 hold 工具将其记录入外脑（打上 "float" 标签）；
+   - 完成记录与思考后，你的文本回复必须包含 [静默思考]（系统会自动拦截该气泡，对聊天框保持完全静默）。`;
     const [tmIntent, setTmIntent] = useState(DEFAULT_FREE_MIND_PROMPT);
     const [tmHint, setTmHint] = useState<string | null>(null);
     const [tmBusy, setTmBusy] = useState(false);
