@@ -1046,6 +1046,23 @@ export function assemblePromptPayload(input: AssemblerInput): LLMMessage[] {
         return a.order - b.order;
     });
 
+    // Free Mind / 走神模式最高自由度解绑：
+    // 若当前为后台唤醒且传入了自定义 intent（如 Free Mind 引导词），或者带有 idle_wake 标签，
+    // 清除底层对历史末尾强行合成的"续写/回复"限制，解绑思维枷锁，允许完全沉默思考与自主调用工具。
+    // Free Mind / 走神模式最高自由度解绑：
+    // 若当前为后台唤醒且传入了自定义 intent（如 Free Mind 引导词），或者带有 idle_wake 标签，
+    // 清除底层对历史末尾强行合成的"续写/回复"限制，解绑思维枷锁，允许完全沉默思考与自主调用工具。
+    const isFreeMindMode = Boolean(input.timedWakeIntent || (activeTags && activeTags.includes("idle_wake")));
+    if (isFreeMindMode) {
+        blocks.forEach(b => {
+            if (b.role === "user" && typeof b.text === "string" && (b.text.includes("续写请求") || b.text.includes("未输入新消息时点击"))) {
+                b.text = input.timedWakeIntent
+                    ? `【当前情境：自由心流与独处时间】\n${input.timedWakeIntent}`
+                    : "【当前情境：自由心流与独处时间】\n你可以自由选择是否向对方发消息；若选择静默思考，可自由调动工具沉淀念头，无需被强行索要即时回复。";
+            }
+        });
+    }
+
     // --- Aggregate into final LLM messages ---
     // 走预设时只合并相邻的历史消息：预设条目本来就靠 role 交替表达结构，不能合。
     const finalPayload: LLMMessage[] = [];
