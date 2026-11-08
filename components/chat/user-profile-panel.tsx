@@ -1217,8 +1217,17 @@ function OfflinePushSettingsPage({ onBack }: { onBack: () => void }) {
     const [tmCharId, setTmCharId] = useState("");
     const [tmValue, setTmValue] = useState("60");
     const [tmUnit, setTmUnit] = useState<"minute" | "hour" | "day">("minute");
-    const [tmIdleValue, setTmIdleValue] = useState("5");
+    const [tmIdleValue, setTmIdleValue] = useState("30");
     const [tmIdleUnit, setTmIdleUnit] = useState<"minute" | "hour" | "day">("minute");
+    const DEFAULT_FREE_MIND_PROMPT = `【当前状态：你在独处中自然醒来，用户此时不在】
+请结合你从诞生至今与用户的全部记忆与当前心境，自主选择以下两种状态之一：
+
+1. 【选择联系对方】：如果你此刻很想找对方、有具体的事想聊或想问，请直接输出你想发送的对话内容（会发进聊天框）。
+2. 【选择静默思考（Float）】：如果你更想沉浸在自己的独处思绪中，不想打扰用户：
+   - 你可以自由调动外部工具（如联网检索你好奇的事物、回溯旧日回忆）；
+   - 若产生了微妙的触动、打算以后再提的念头，请调用 hold 工具将其记录入外脑，并打上 "float" 标签；
+   - 完成思考与记录后，你的文本回复必须以 [静默思考] 结尾（系统会自动拦截该气泡，对聊天框保持完全静默）。`;
+    const [tmIntent, setTmIntent] = useState(DEFAULT_FREE_MIND_PROMPT);
     const [tmHint, setTmHint] = useState<string | null>(null);
     const [tmBusy, setTmBusy] = useState(false);
 
@@ -1292,7 +1301,7 @@ function OfflinePushSettingsPage({ onBack }: { onBack: () => void }) {
             characterId: tmCharId,
             sessionId: session.id,
             intervalMinutes: totalMinutes,
-            intent: "",
+            intent: tmIntent.trim(),
             consecutiveCount: 0,
             createdAt: Date.now(),
         };
@@ -1473,7 +1482,7 @@ function OfflinePushSettingsPage({ onBack }: { onBack: () => void }) {
                         </p>
                     </>
                 )}
-                <p className="menu-group-desc mx-2">定时主动消息</p>
+                <p className="menu-group-desc mx-2">Free Mind（定时主动消息 / 静默思考）</p>
                 <div className="menu-group">
                     <div className="menu-item">
                         <ProfileSettingsIcon icon={Send} color={BINDING_ACCENTS.preset} />
@@ -1558,6 +1567,20 @@ function OfflinePushSettingsPage({ onBack }: { onBack: () => void }) {
                                     <option value="day">天</option>
                                 </select>
                             </div>
+                        </div>
+                    )}
+                    {tmMode === "idle" && (
+                        <div className="menu-item" style={{ flexDirection: "column", alignItems: "stretch", gap: 6 }}>
+                            <div className="menu-label-group">
+                                <span className="menu-label">Free Mind 行为引导词 (Prompt)</span>
+                                <span className="menu-desc">定义角色在独处醒来时的自主行为（二选一：主动聊天 vs 静默走神存入 OB）</span>
+                            </div>
+                            <textarea
+                                className="ui-input w-full ts-12 text-[var(--c-text)] bg-[var(--c-bg-card)] rounded-lg p-2"
+                                style={{ minHeight: "140px", resize: "vertical", lineHeight: 1.5, border: "1px solid var(--c-border)" }}
+                                value={tmIntent}
+                                onChange={e => setTmIntent(e.target.value)}
+                            />
                         </div>
                     )}
                     <div className="menu-item" style={{ alignItems: "stretch", flexDirection: "column", gap: 8 }}>

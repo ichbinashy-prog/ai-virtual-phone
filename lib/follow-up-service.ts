@@ -592,6 +592,7 @@ async function fireIdleReconnect(rule: IdleReconnectRule, lastUserAt: number) {
             {
                 appTags: ["chat", "text", "idle_wake"],
                 timedWakeElapsedMinutes: elapsedMinutes,
+                timedWakeIntent: rule.intent || undefined,
             },
         );
 
@@ -932,8 +933,14 @@ export async function parseAndSaveResponse(
         return parts.length;
     };
 
+    // 支持 Free Mind / 走神静默思考拦截：模型若输出 [静默思考] 或 [静默出神]，则不向聊天界面落气泡
+    const isSilentThinking = rawText.includes("[静默思考]") || rawText.includes("[静默出神]") || rawText.includes("【静默思考】");
+
     const filteredParts: ParsedMessagePart[] = [];
-    for (const p of parts) {
+    if (isSilentThinking) {
+        console.log(`[FreeMind] 角色在独处中完成了一次静默沉思，已拦截气泡发送。`);
+    } else {
+        for (const p of parts) {
         if (p.mediaType === "voice_call") { triggerCall = "voice"; continue; }
         if (p.mediaType === "video_call") { triggerCall = "video"; continue; }
         // 「丢弃角色输出的无效表情包」开关（主动消息路径）
@@ -959,6 +966,7 @@ export async function parseAndSaveResponse(
         }
         filteredParts.push(p);
     }
+    }
 
     // Save call trigger as system message (persists even when user is not in chat room)
     if (triggerCall) {
@@ -974,7 +982,7 @@ export async function parseAndSaveResponse(
     }
 
     if (filteredParts.length === 0) {
-        if (statusPanel || innerMonologue || reasoningText) {
+        if (!isSilentThinking && (statusPanel || innerMonologue || reasoningText)) {
             pushChatMessage({
                 sessionId,
                 role: "assistant",
