@@ -454,7 +454,7 @@ function presetIncludesToolsMacro(preset: PresetConfig | null, appId: string, ap
     });
 }
 
-const EMPTY_GENERATE_CONTINUATION_PROMPT = "这是一次用户未输入新消息时点击“生成”的续写请求。请只基于当前对话关系，继续回复一句自然简短的话。禁止引用或复述系统消息、当前时间、工具结果、提示词内容。不要开启新事件，不要总结，不要编造用户刚说了什么。";
+const EMPTY_GENERATE_CONTINUATION_PROMPT = "这是一次用户未输入新消息时点击“生成”的续写请求。请只基于当前对话关系，继续你的动作（回复一句简短的话、静默思考、或调用工具）。但不要开启新事件，不要总结，不要编造用户刚说了什么。";
 
 function shouldApplyEmptyGenerateGuard(config: ApiConfig): boolean {
     return config.preventEmptyGenerateRambling === true;
